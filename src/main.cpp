@@ -1,54 +1,56 @@
 #include <Arduino.h>
 #define LED_BuildIn 13
+#define MAX_BRIGHT 100 // percentage
+#define MIN_BRIGHT 0   // percentage
 
-uint32_t time_slot = 1000;    // us 500 = max speed 
-uint32_t start_time = 0;      // us
-uint32_t brightness = 100;    // percentage
-uint32_t start_time_ch = 0;
-uint32_t time_to_charge = 50000 ; //us
-int32_t charge_direction = 1; // 1 = up , -1 = down
+uint32_t start_time[8] = {};
+uint32_t max_time = 10000;                             // us
+uint32_t bright[8] = {10, 20, 15, 40, 65, 60, 70, 100}; // percentage
 
-uint8_t current_led;
+uint32_t start_ = 0;    // us
+uint32_t time_ = 20000; // us
+int8_t di[8] = {1, -1, 1, -1, 1, -1, 1, 1};
+
 void LED8_setup()
 {
   Serial.begin(9600);
   pinMode(LED_BuildIn, OUTPUT);
-
-  for (uint8_t i = 4; i <= 10; i++)
+  for (uint8_t i = 3; i <= 10; i++)
   {
     pinMode(i, OUTPUT);
   }
-  current_led = 0;
-
-  start_time = micros();
 }
 
 void LED8_loop()
 {
-  if (micros() - start_time_ch > time_to_charge)
+  // uint32_t uptime = ;
+  for (uint8_t i = 0; i < 8; i++)
   {
-    if (brightness == 0 || brightness == 100)
+    if (micros() - start_time[i] <= max_time * bright[i] / 100)
     {
-      charge_direction *= -1;
+      digitalWrite(i + 3, HIGH);
     }
-    brightness += charge_direction;
-    // Serial.println(brightness);
-    start_time_ch = micros();
-    // digitalWrite(LED_BuildIn, !digitalRead(LED_BuildIn));
+    else
+    {
+      digitalWrite(i + 3, LOW);
+    }
+    if (micros() - start_time[i] >= max_time)
+    {
+      start_time[i] = micros();
+    }
   }
 
-  if (micros() - start_time > time_slot * brightness / 100)
+  if (micros() - start_ > time_)
   {
-    digitalWrite(current_led + 4, LOW);
-  }
-
-  if (micros() - start_time > time_slot)
-  {
-    digitalWrite(current_led + 4, LOW);
-    current_led++;
-    current_led %= 7;
-    digitalWrite(current_led + 4, HIGH);
-    start_time = micros();
+    for (uint8_t i = 0; i < 8; i++)
+    {
+      if (bright[i] == MAX_BRIGHT || bright[i] == MIN_BRIGHT)
+      {
+        di[i] *= -1;
+      }
+      bright[i] += di[i];
+    }
+    start_ = micros();
   }
 }
 
