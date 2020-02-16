@@ -2,11 +2,8 @@
 #define start_pin 2
 #define delayMode3 500
 #define delaymode3 100
-const uint32_t totalTime = 10000; // ms
+const uint32_t totalTime = 7500; // ms
 // const uint32_t step = 8;
-const uint32_t TimePerStep1 = totalTime / 14;
-const uint32_t TimePerStep2 = totalTime / 12;
-
 const uint32_t TimePerStep = totalTime / 10;
 
 typedef struct L
@@ -17,6 +14,7 @@ typedef struct L
   int32_t currentTime = 0;
   int32_t direction = 1;
   int32_t en = 1;
+  int32_t TimePerStep = totalTime / 14;
 } LED;
 
 LED l1, l2;
@@ -50,21 +48,23 @@ void setup()
   {
     l1.pin = 0;
     l1.brightness = 50;
+    l1.TimePerStep = totalTime / 12;
     l2.pin = 2;
     l2.brightness = 200;
-
-    analogWrite(0 + start_pin, 200);
-    delay(TimePerStep2);
+    l2.TimePerStep = totalTime / 11;
+    analogWrite(0 + start_pin, l2.brightness);
+    delay(l2.TimePerStep);
     analogWrite(0 + start_pin, 255);
-    analogWrite(1 + start_pin, 200);
-    delay(TimePerStep2);
-    analogWrite(0 + start_pin, 50);
+    analogWrite(1 + start_pin, l2.brightness);
+    delay(l2.TimePerStep);
+    analogWrite(0 + start_pin, l1.brightness);
     analogWrite(1 + start_pin, 255);
-    analogWrite(2 + start_pin, 200);
-    delay(TimePerStep2);
+    analogWrite(2 + start_pin, l2.brightness);
+    delay(l2.TimePerStep);
   }
   else if (mode == 1)
   {
+    
     l1.pin = 0;
     l1.brightness = 50;
     l1.direction = -1;
@@ -76,10 +76,6 @@ void setup()
   {
     l1.pin = 0;
     l1.brightness = 255;
-    // l1.direction = -1;
-    // l2.pin = 7;
-    // l2.direction = 1;
-    // l2.brightness = 200;
   }
 }
 
@@ -88,43 +84,51 @@ void loop()
 
   if (mode == 0)
   {
-    if (l1.en && millis() - l1.startTime >= TimePerStep1)
-    {
-      if (l1.direction == -1 && l1.pin == 0)
-      {
-        l1.en = 0;
+    
+    while (1){
+      if (millis() - l1.startTime >= l1.TimePerStep){
+        if(l1.pin != l2.pin)
+          analogWrite(l1.pin + start_pin,255);
+        l1.pin += l1.direction;
+        analogWrite(l1.pin + start_pin,l1.brightness);
+        if(l1.pin == 7){
+          l1.direction *= -1;
+        }
+        if(l1.pin == 2 && l1.direction == -1){
+          // resetFunc();
+          l1.en = 0;
+        }
+        l1.startTime = millis();
       }
-      analogWrite(l1.pin + start_pin, 255);
-      if (l1.pin == 7)
-        l1.direction *= -1;
-      l1.pin += l1.direction;
-      l1.startTime = millis();
-    }
-    if (l2.en && millis() - l2.startTime >= TimePerStep2)
-    {
-      if (l2.direction == -1 && l2.pin == 0)
-      {
-        l2.en = 0;
+      if (millis() - l2.startTime >= l2.TimePerStep){
+        if(l1.pin != l2.pin)
+          analogWrite(l2.pin + start_pin,255);
+        l2.pin += l2.direction;
+        analogWrite(l2.pin + start_pin,l2.brightness);
+        if(l2.pin == 7){
+          l2.direction *= -1;
+        }
+        if(l2.pin == 1 && l2.direction == -1){
+          // resetFunc();
+          l2.en = 0;
+        }
+        l2.startTime = millis();
       }
-      analogWrite(l2.pin + start_pin, 255);
-      if (l2.pin == 7)
-        l2.direction *= -1;
-      l2.pin += l2.direction;
-      l2.startTime = millis();
-    }
-
-    if (l2.pin == l1.pin)
-    {
-      analogWrite(l2.pin + start_pin, 125); 
-    }
-    else
-    {
-      analogWrite(l2.pin + start_pin, l2.brightness * l2.en);
-      analogWrite(l1.pin + start_pin, l1.brightness * l1.en);
-    }
-
-    if(l2.en == 0 && l2.en == 0){
-      resetFunc();
+      if(l1.pin == l2.pin){
+        analogWrite(l1.pin + start_pin,125);
+      }
+      if(l1.en == 0 && l2.en == 0){
+        delay(l2.TimePerStep);
+        analogWrite(l2.pin + start_pin,255);
+        analogWrite(l1.pin + start_pin,255);
+        analogWrite(0 + start_pin,l2.brightness);
+        analogWrite(1 + start_pin,l1.brightness);
+        delay(l2.TimePerStep);
+        analogWrite(0 + start_pin,125);
+        analogWrite(1 + start_pin,255);
+        delay(l2.TimePerStep);
+        resetFunc();
+      }
     }
   }
   else if (mode == 1)
@@ -157,7 +161,7 @@ void loop()
     }
   }
   else
-  {
+  { // mode 3
     for(int8_t i = 0; i < 8 ;i++){
       analogWrite(i + start_pin,227 - (28*i));
       delay(delaymode3);
@@ -203,5 +207,5 @@ void loop()
       delay(delaymode3);
     }
     delay(delayMode3);
-  }
+  } // mode 3
 }
